@@ -275,10 +275,9 @@ func main() {
 			if userAgent == "" {
 				return next(c)
 			}
-			userAgentByte := []byte(userAgent)
 
 			for _, reg := range botRegexps {
-				if reg.Match(userAgentByte) {
+				if reg.MatchString(userAgent) {
 					return c.NoContent(http.StatusServiceUnavailable)
 				}
 			}
