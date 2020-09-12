@@ -350,7 +350,7 @@ func initialize(c echo.Context) error {
 		}
 		for _, estate := range estates {
 			point := fmt.Sprintf("'POINT(%f %f)'", estate.Latitude, estate.Longitude)
-			_, err := db.Exec("update estate set latlon=?", point)
+			_, err := db.Exec("update estate set latlon=ST_GeomFromText(" + point + ")")
 			if err != nil {
 				c.Logger().Errorf("Initialize script error : %v", err)
 				return c.NoContent(http.StatusInternalServerError)
