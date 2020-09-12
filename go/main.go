@@ -31,7 +31,7 @@ var mySQLConnectionData *MySQLConnectionEnv
 var chairSearchCondition ChairSearchCondition
 var estateSearchCondition EstateSearchCondition
 
-const botRegexpStr string = `(ISUCONbot(-Mobile)?)` + `|` +
+const botRegexpStr string = `(?i)(` + `(ISUCONbot(-Mobile)?)` + `|` +
 	`(ISUCONbot-Image\/)` + `|` +
 	`(Mediapartners-ISUCON)` + `|` +
 	`(ISUCONCoffee)` + `|` +
@@ -40,7 +40,7 @@ const botRegexpStr string = `(ISUCONbot(-Mobile)?)` + `|` +
 	`(isubot)` + `|` +
 	`(Isupider)` + `|` +
 	`(Isupider(-image)?\+)` + `|` +
-	`((bot|crawler|spider)(?:[-_ .\/;@()]|$))`
+	`((bot|crawler|spider)(?:[-_ .\/;@()]|$))` + ")"
 
 var botRegexp = regexp.MustCompile(botRegexpStr)
 
