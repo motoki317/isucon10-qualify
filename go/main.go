@@ -27,7 +27,9 @@ const Limit = 20
 const NazotteLimit = 50
 
 var db *sqlx.DB
+var db2 *sqlx.DB
 var mySQLConnectionData *MySQLConnectionEnv
+var mySQLConnection2Data *MySQLConnectionEnv
 var chairSearchCondition ChairSearchCondition
 var estateSearchCondition EstateSearchCondition
 
@@ -226,6 +228,16 @@ func NewMySQLConnectionEnv() *MySQLConnectionEnv {
 	}
 }
 
+func NewMySQLConnection2() *MySQLConnectionEnv {
+	return &MySQLConnectionEnv{
+		Host:     "10.163.94.101",
+		Port:     getEnv("MYSQL_PORT", "3306"),
+		User:     getEnv("MYSQL_USER", "isucon"),
+		DBName:   getEnv("MYSQL_DBNAME", "isuumo"),
+		Password: getEnv("MYSQL_PASS", "isucon"),
+	}
+}
+
 func getEnv(key, defaultValue string) string {
 	val := os.Getenv(key)
 	if val != "" {
@@ -310,6 +322,7 @@ func main() {
 	e.GET("/api/recommended_estate/:id", searchRecommendedEstateWithChair)
 
 	mySQLConnectionData = NewMySQLConnectionEnv()
+	mySQLConnection2Data = NewMySQLConnection2()
 
 	var err error
 	db, err = mySQLConnectionData.ConnectDB()
@@ -318,6 +331,12 @@ func main() {
 	}
 	db.SetMaxOpenConns(10)
 	defer db.Close()
+	db2, err = mySQLConnection2Data.ConnectDB()
+	if err != nil {
+		e.Logger.Fatalf("DB connection failed : %v", err)
+	}
+	db2.SetMaxOpenConns(10)
+	defer db2.Close()
 
 	// Start server
 	serverPort := fmt.Sprintf(":%v", getEnv("SERVER_PORT", "1323"))
@@ -332,6 +351,12 @@ func initialize(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 	db.SetMaxOpenConns(10)
+	db2, err = mySQLConnection2Data.ConnectDB()
+	if err != nil {
+		c.Logger().Errorf("Initialize script error : %v", err)
+		return c.NoContent(http.StatusInternalServerError)
+	}
+	db2.SetMaxOpenConns(10)
 
 	sqlDir := filepath.Join("..", "mysql", "db")
 	paths := []string{
