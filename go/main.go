@@ -31,18 +31,18 @@ var mySQLConnectionData *MySQLConnectionEnv
 var chairSearchCondition ChairSearchCondition
 var estateSearchCondition EstateSearchCondition
 
-const botRegexpStr string = `(?i)(` + `(ISUCONbot(-Mobile)?)` + `|` +
-	`(ISUCONbot-Image\/)` + `|` +
-	`(Mediapartners-ISUCON)` + `|` +
-	`(ISUCONCoffee)` + `|` +
-	`(ISUCONFeedSeeker(Beta)?)` + `|` +
-	`(crawler \(https:\/\/isucon\.invalid\/(support\/faq\/|help\/jp\/)))` + `|` +
-	`(isubot)` + `|` +
-	`(Isupider)` + `|` +
-	`(Isupider(-image)?\+)` + `|` +
-	`((bot|crawler|spider)(?:[-_ .\/;@()]|$))` + ")"
-
-var botRegexp = regexp.MustCompile(botRegexpStr)
+var botRegexps = []*regexp.Regexp{
+	regexp.MustCompile("ISUCONbot(-Mobile)?"),
+	regexp.MustCompile("ISUCONbot-Image/"),
+	regexp.MustCompile("Mediapartners-ISUCON"),
+	regexp.MustCompile("ISUCONCoffee"),
+	regexp.MustCompile("ISUCONFeedSeeker(Beta)?"),
+	regexp.MustCompile("crawler \\(https://isucon\\.invalid/(support/faq/|help/jp/)"),
+	regexp.MustCompile("isubot"),
+	regexp.MustCompile("Isupider"),
+	regexp.MustCompile("Isupider(-image)?\\+"),
+	regexp.MustCompile("(?i)(bot|crawler|spider)(?:[-_ ./;@()]|$)"),
+}
 
 type InitializeResponse struct {
 	Language string `json:"language"`
