@@ -17,6 +17,7 @@ import (
 	_ "net/http/pprof"
 
 	_ "github.com/go-sql-driver/mysql"
+	s2 "github.com/golang/geo/s2"
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
@@ -983,11 +984,10 @@ func searchEstateNazotte(c echo.Context) error {
 
 	b := coordinates.getBoundingBox()
 	estatesInPolygon := []Estate{}
-	//estatesInBoundingBox := []Estate{}
-	query := fmt.Sprintf(`SELECT `+estateFrom+` FROM estate WHERE latitude <= ? AND latitude >= ? AND longitude <= ? AND longitude >= ?`+
-		` AND ST_Contains(ST_PolygonFromText(%s), latlon)`+
-		` ORDER BY popularity ASC, id ASC LIMIT ?`, coordinates.coordinatesToText())
-	err = db.Select(&estatesInPolygon, query, b.BottomRightCorner.Latitude, b.TopLeftCorner.Latitude, b.BottomRightCorner.Longitude, b.TopLeftCorner.Longitude, NazotteLimit)
+	estatesInBoundingBox := []Estate{}
+	query := fmt.Sprintf(`SELECT ` + estateFrom + ` FROM estate WHERE latitude <= ? AND latitude >= ? AND longitude <= ? AND longitude >= ?` +
+		` ORDER BY popularity ASC, id ASC LIMIT ?`)
+	err = db.Select(&estatesInBoundingBox, query, b.BottomRightCorner.Latitude, b.TopLeftCorner.Latitude, b.BottomRightCorner.Longitude, b.TopLeftCorner.Longitude, 4*NazotteLimit)
 	if err == sql.ErrNoRows {
 		c.Echo().Logger.Infof("select * from estate where latitude ...", err)
 		return c.JSON(http.StatusOK, EstateSearchResponse{Count: 0, Estates: []Estate{}})
@@ -996,12 +996,18 @@ func searchEstateNazotte(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	for _, estate := range estatesInPolygon {
-		estate.Popularity = -estate.Popularity
-		// validatedEstate := Estate{}
+	var pts []s2.Point
+	for _, c := range coordinates.Coordinates {
+		pts = append(pts, s2.PointFromLatLng(s2.LatLngFromDegrees(c.Latitude, c.Longitude)))
+	}
+	loop := s2.LoopFromPoints(pts)
 
+	for _, estate := range estatesInBoundingBox {
+		estate.Popularity = -estate.Popularity
+
+		//validatedEstate := Estate{}
 		// point := fmt.Sprintf("'POINT(%f %f)'", estate.Latitude, estate.Longitude)
-		// query := fmt.Sprintf(`SELECT ` + estateFrom + ` FROM estate WHERE id = ? AND ST_Contains(ST_PolygonFromText(%s), ST_GeomFromText(%s))`, coordinates.coordinatesToText(), point)
+		// query := fmt.Sprintf(`SELECT `+estateFrom+` FROM estate WHERE id = ? AND ST_Contains(ST_PolygonFromText(%s), ST_GeomFromText(%s))`, coordinates.coordinatesToText(), point)
 		// err = db.Get(&validatedEstate, query, estate.ID)
 		// validatedEstate.Popularity = -validatedEstate.Popularity
 		// if err != nil {
@@ -1015,9 +1021,15 @@ func searchEstateNazotte(c echo.Context) error {
 		// 	estatesInPolygon = append(estatesInPolygon, validatedEstate)
 		// }
 
-		// if len(estatesInPolygon) >= NazotteLimit {
-		// 	break
-		// }
+		point := s2.PointFromLatLng(s2.LatLngFromDegrees(estate.Latitude, estate.Longitude))
+		if !loop.ContainsPoint(point) {
+			continue
+		}
+		estatesInPolygon = append(estatesInPolygon, estate)
+
+		if len(estatesInPolygon) >= NazotteLimit {
+			break
+		}
 	}
 
 	var re EstateSearchResponse
