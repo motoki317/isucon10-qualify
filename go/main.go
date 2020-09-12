@@ -665,6 +665,7 @@ func getEstateDetail(c echo.Context) error {
 		c.Echo().Logger.Errorf("Database Execution error : %v", err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
+	estate.Popularity = -estate.Popularity
 
 	return c.JSON(http.StatusOK, estate)
 }
@@ -724,7 +725,7 @@ func postEstate(c echo.Context) error {
 			c.Logger().Errorf("failed to read record: %v", err)
 			return c.NoContent(http.StatusBadRequest)
 		}
-		_, err := tx.Exec("INSERT INTO estate(id, name, description, thumbnail, address, latitude, longitude, rent, door_height, door_width, features, popularity) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)", id, name, description, thumbnail, address, latitude, longitude, rent, doorHeight, doorWidth, features, popularity)
+		_, err := tx.Exec("INSERT INTO estate(id, name, description, thumbnail, address, latitude, longitude, rent, door_height, door_width, features, popularity) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)", id, name, description, thumbnail, address, latitude, longitude, rent, doorHeight, doorWidth, features, -popularity)
 		if err != nil {
 			c.Logger().Errorf("failed to insert estate: %v", err)
 			return c.NoContent(http.StatusInternalServerError)
@@ -819,7 +820,7 @@ func searchEstates(c echo.Context) error {
 	searchQuery := "SELECT * FROM estate WHERE "
 	countQuery := "SELECT COUNT(*) FROM estate WHERE "
 	searchCondition := strings.Join(conditions, " AND ")
-	limitOffset := " ORDER BY popularity DESC, id ASC LIMIT ? OFFSET ?"
+	limitOffset := " ORDER BY popularity ASC, id ASC LIMIT ? OFFSET ?"
 
 	var res EstateSearchResponse
 	err = db.Get(&res.Count, countQuery+searchCondition, params...)
@@ -838,6 +839,9 @@ func searchEstates(c echo.Context) error {
 		c.Logger().Errorf("searchEstates DB execution error : %v", err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
+	for _, estate := range estates {
+		estate.Popularity = -estate.Popularity
+	}
 
 	res.Estates = estates
 
@@ -855,6 +859,9 @@ func getLowPricedEstate(c echo.Context) error {
 		}
 		c.Logger().Errorf("getLowPricedEstate DB execution error : %v", err)
 		return c.NoContent(http.StatusInternalServerError)
+	}
+	for _, estate := range estates {
+		estate.Popularity = -estate.Popularity
 	}
 
 	return c.JSON(http.StatusOK, EstateListResponse{Estates: estates})
@@ -890,8 +897,8 @@ func searchRecommendedEstateWithChair(c echo.Context) error {
 	w := chair.Width
 	h := chair.Height
 	d := chair.Depth
-	//query = `(SELECT * FROM estate WHERE door_width >= ? AND door_height >= ?) UNION (SELECT * FROM estate WHERE door_width >= ? AND door_height >= ?) ORDER BY popularity DESC, id ASC LIMIT ?`
-	query = `SELECT * FROM estate WHERE (door_width >= ? AND door_height >= ?) OR (door_width >= ? AND door_height >= ?) ORDER BY popularity DESC, id ASC LIMIT ?`
+	//query = `(SELECT * FROM estate WHERE door_width >= ? AND door_height >= ?) UNION (SELECT * FROM estate WHERE door_width >= ? AND door_height >= ?) ORDER BY popularity ASC, id ASC LIMIT ?`
+	query = `SELECT * FROM estate WHERE (door_width >= ? AND door_height >= ?) OR (door_width >= ? AND door_height >= ?) ORDER BY popularity ASC, id ASC LIMIT ?`
 	// err = db.Select(&estates, query,
 	// 	w, min(h, d),
 	// 	h, min(w, d),
@@ -925,6 +932,9 @@ func searchRecommendedEstateWithChair(c echo.Context) error {
 		c.Logger().Errorf("Database execution error : %v", err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
+	for _, estate := range estates {
+		estate.Popularity = -estate.Popularity
+	}
 
 	return c.JSON(http.StatusOK, EstateListResponse{Estates: estates})
 }
@@ -943,7 +953,7 @@ func searchEstateNazotte(c echo.Context) error {
 
 	b := coordinates.getBoundingBox()
 	estatesInBoundingBox := []Estate{}
-	query := `SELECT * FROM estate WHERE latitude <= ? AND latitude >= ? AND longitude <= ? AND longitude >= ? ORDER BY popularity DESC, id ASC`
+	query := `SELECT * FROM estate WHERE latitude <= ? AND latitude >= ? AND longitude <= ? AND longitude >= ? ORDER BY popularity ASC, id ASC`
 	err = db.Select(&estatesInBoundingBox, query, b.BottomRightCorner.Latitude, b.TopLeftCorner.Latitude, b.BottomRightCorner.Longitude, b.TopLeftCorner.Longitude)
 	if err == sql.ErrNoRows {
 		c.Echo().Logger.Infof("select * from estate where latitude ...", err)
@@ -955,11 +965,13 @@ func searchEstateNazotte(c echo.Context) error {
 
 	estatesInPolygon := []Estate{}
 	for _, estate := range estatesInBoundingBox {
+		estate.Popularity = -estate.Popularity
 		validatedEstate := Estate{}
 
 		point := fmt.Sprintf("'POINT(%f %f)'", estate.Latitude, estate.Longitude)
 		query := fmt.Sprintf(`SELECT * FROM estate WHERE id = ? AND ST_Contains(ST_PolygonFromText(%s), ST_GeomFromText(%s))`, coordinates.coordinatesToText(), point)
 		err = db.Get(&validatedEstate, query, estate.ID)
+		validatedEstate.Popularity = -validatedEstate.Popularity
 		if err != nil {
 			if err == sql.ErrNoRows {
 				continue
@@ -1017,6 +1029,7 @@ func postEstateRequestDocument(c echo.Context) error {
 		c.Logger().Errorf("postEstateRequestDocument DB execution error : %v", err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
+	estate.Popularity = -estate.Popularity
 
 	return c.NoContent(http.StatusOK)
 }
