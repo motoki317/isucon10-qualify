@@ -400,8 +400,6 @@ func initialize(c echo.Context) error {
 		}
 	}
 
-	time.Sleep(2000*time.Millisecond)
-
 	return c.JSON(http.StatusOK, InitializeResponse{
 		Language: "go",
 	})
@@ -1009,15 +1007,13 @@ func searchEstateNazotte(c echo.Context) error {
 		return c.NoContent(http.StatusBadRequest)
 	}
 
-	//time.Sleep(1000*time.Millisecond)
-
 	b := coordinates.getBoundingBox()
 	estatesInPolygon := []Estate{}
 	//estatesInBoundingBox := []Estate{}
 	query := fmt.Sprintf(`SELECT `+estateFrom+` FROM estate WHERE latitude <= ? AND latitude >= ? AND longitude <= ? AND longitude >= ?`+
 		` AND ST_Contains(ST_PolygonFromText(%s), latlon)`+
 		` ORDER BY popularity ASC, id ASC LIMIT ?`, coordinates.coordinatesToText())
-	err = db2.Select(&estatesInPolygon, query, b.BottomRightCorner.Latitude, b.TopLeftCorner.Latitude, b.BottomRightCorner.Longitude, b.TopLeftCorner.Longitude, NazotteLimit)
+	err = db.Select(&estatesInPolygon, query, b.BottomRightCorner.Latitude, b.TopLeftCorner.Latitude, b.BottomRightCorner.Longitude, b.TopLeftCorner.Longitude, NazotteLimit)
 	if err == sql.ErrNoRows {
 		c.Echo().Logger.Infof("select * from estate where latitude ...", err)
 		return c.JSON(http.StatusOK, EstateSearchResponse{Count: 0, Estates: []Estate{}})
