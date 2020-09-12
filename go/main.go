@@ -380,6 +380,7 @@ func getChairDetail(c echo.Context) error {
 		c.Echo().Logger.Infof("requested id's chair is sold out : %v", id)
 		return c.NoContent(http.StatusNotFound)
 	}
+	chair.Popularity = -chair.Popularity
 
 	return c.JSON(http.StatusOK, chair)
 }
@@ -427,7 +428,7 @@ func postChair(c echo.Context) error {
 			c.Logger().Errorf("failed to read record: %v", err)
 			return c.NoContent(http.StatusBadRequest)
 		}
-		_, err := tx.Exec("INSERT INTO chair(id, name, description, thumbnail, price, height, width, depth, color, features, kind, popularity, stock) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)", id, name, description, thumbnail, price, height, width, depth, color, features, kind, popularity, stock)
+		_, err := tx.Exec("INSERT INTO chair(id, name, description, thumbnail, price, height, width, depth, color, features, kind, popularity, stock) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)", id, name, description, thumbnail, price, height, width, depth, color, features, kind, -popularity, stock)
 		if err != nil {
 			c.Logger().Errorf("failed to insert chair: %v", err)
 			return c.NoContent(http.StatusInternalServerError)
@@ -551,7 +552,7 @@ func searchChairs(c echo.Context) error {
 	searchQuery := "SELECT * FROM chair WHERE "
 	countQuery := "SELECT COUNT(*) FROM chair WHERE "
 	searchCondition := strings.Join(conditions, " AND ")
-	limitOffset := " ORDER BY popularity DESC, id ASC LIMIT ? OFFSET ?"
+	limitOffset := " ORDER BY popularity ASC, id ASC LIMIT ? OFFSET ?"
 
 	var res ChairSearchResponse
 	err = db.Get(&res.Count, countQuery+searchCondition, params...)
@@ -569,6 +570,9 @@ func searchChairs(c echo.Context) error {
 		}
 		c.Logger().Errorf("searchChairs DB execution error : %v", err)
 		return c.NoContent(http.StatusInternalServerError)
+	}
+	for _, chair := range chairs {
+		chair.Popularity = -chair.Popularity
 	}
 
 	res.Chairs = chairs
@@ -612,6 +616,7 @@ func buyChair(c echo.Context) error {
 		c.Echo().Logger.Errorf("DB Execution Error: on getting a chair by id : %v", err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
+	chair.Popularity = -chair.Popularity
 
 	_, err = tx.Exec("UPDATE chair SET stock = stock - 1 WHERE id = ?", id)
 	if err != nil {
@@ -643,6 +648,9 @@ func getLowPricedChair(c echo.Context) error {
 		}
 		c.Logger().Errorf("getLowPricedChair DB execution error : %v", err)
 		return c.NoContent(http.StatusInternalServerError)
+	}
+	for _, chair := range chairs {
+		chair.Popularity = -chair.Popularity
 	}
 
 	return c.JSON(http.StatusOK, ChairListResponse{Chairs: chairs})
@@ -892,6 +900,7 @@ func searchRecommendedEstateWithChair(c echo.Context) error {
 		c.Logger().Errorf("Database execution error : %v", err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
+	chair.Popularity = -chair.Popularity
 
 	var estates []Estate
 	w := chair.Width
