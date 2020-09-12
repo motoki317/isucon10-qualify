@@ -733,7 +733,8 @@ func postEstate(c echo.Context) error {
 			c.Logger().Errorf("failed to read record: %v", err)
 			return c.NoContent(http.StatusBadRequest)
 		}
-		_, err := tx.Exec("INSERT INTO estate(id, name, description, thumbnail, address, latitude, longitude, rent, door_height, door_width, features, popularity) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)", id, name, description, thumbnail, address, latitude, longitude, rent, doorHeight, doorWidth, features, -popularity)
+		point := fmt.Sprintf("'POINT(%f %f)'", latitude, longitude)
+		_, err := tx.Exec("INSERT INTO estate(id, name, description, thumbnail, address, latitude, longitude, rent, door_height, door_width, features, popularity, latlon) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)", id, name, description, thumbnail, address, latitude, longitude, rent, doorHeight, doorWidth, features, -popularity, point)
 		if err != nil {
 			c.Logger().Errorf("failed to insert estate: %v", err)
 			return c.NoContent(http.StatusInternalServerError)
@@ -961,9 +962,12 @@ func searchEstateNazotte(c echo.Context) error {
 	}
 
 	b := coordinates.getBoundingBox()
-	estatesInBoundingBox := []Estate{}
-	query := `SELECT * FROM estate WHERE latitude <= ? AND latitude >= ? AND longitude <= ? AND longitude >= ? ORDER BY popularity ASC, id ASC`
-	err = db.Select(&estatesInBoundingBox, query, b.BottomRightCorner.Latitude, b.TopLeftCorner.Latitude, b.BottomRightCorner.Longitude, b.TopLeftCorner.Longitude)
+	estatesInPolygon := []Estate{}
+	//estatesInBoundingBox := []Estate{}
+	query := fmt.Sprintf(`SELECT * FROM estate WHERE latitude <= ? AND latitude >= ? AND longitude <= ? AND longitude >= ?`+
+		` AND ST_Contains(ST_PolygonFromText(%s), latlon)`+
+		` ORDER BY popularity ASC, id ASC LIMIT ?`, coordinates.coordinatesToText())
+	err = db.Select(&estatesInPolygon, query, b.BottomRightCorner.Latitude, b.TopLeftCorner.Latitude, b.BottomRightCorner.Longitude, b.TopLeftCorner.Longitude, NazotteLimit)
 	if err == sql.ErrNoRows {
 		c.Echo().Logger.Infof("select * from estate where latitude ...", err)
 		return c.JSON(http.StatusOK, EstateSearchResponse{Count: 0, Estates: []Estate{}})
@@ -972,29 +976,28 @@ func searchEstateNazotte(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	estatesInPolygon := []Estate{}
-	for _, estate := range estatesInBoundingBox {
+	for _, estate := range estatesInPolygon {
 		estate.Popularity = -estate.Popularity
-		validatedEstate := Estate{}
+		// validatedEstate := Estate{}
 
-		point := fmt.Sprintf("'POINT(%f %f)'", estate.Latitude, estate.Longitude)
-		query := fmt.Sprintf(`SELECT * FROM estate WHERE id = ? AND ST_Contains(ST_PolygonFromText(%s), ST_GeomFromText(%s))`, coordinates.coordinatesToText(), point)
-		err = db.Get(&validatedEstate, query, estate.ID)
-		validatedEstate.Popularity = -validatedEstate.Popularity
-		if err != nil {
-			if err == sql.ErrNoRows {
-				continue
-			} else {
-				c.Echo().Logger.Errorf("db access is failed on executing validate if estate is in polygon : %v", err)
-				return c.NoContent(http.StatusInternalServerError)
-			}
-		} else {
-			estatesInPolygon = append(estatesInPolygon, validatedEstate)
-		}
+		// point := fmt.Sprintf("'POINT(%f %f)'", estate.Latitude, estate.Longitude)
+		// query := fmt.Sprintf(`SELECT * FROM estate WHERE id = ? AND ST_Contains(ST_PolygonFromText(%s), ST_GeomFromText(%s))`, coordinates.coordinatesToText(), point)
+		// err = db.Get(&validatedEstate, query, estate.ID)
+		// validatedEstate.Popularity = -validatedEstate.Popularity
+		// if err != nil {
+		// 	if err == sql.ErrNoRows {
+		// 		continue
+		// 	} else {
+		// 		c.Echo().Logger.Errorf("db access is failed on executing validate if estate is in polygon : %v", err)
+		// 		return c.NoContent(http.StatusInternalServerError)
+		// 	}
+		// } else {
+		// 	estatesInPolygon = append(estatesInPolygon, validatedEstate)
+		// }
 
-		if len(estatesInPolygon) >= NazotteLimit {
-			break
-		}
+		// if len(estatesInPolygon) >= NazotteLimit {
+		// 	break
+		// }
 	}
 
 	var re EstateSearchResponse
