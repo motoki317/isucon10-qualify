@@ -338,6 +338,22 @@ func initialize(c echo.Context) error {
 		filepath.Join(sqlDir, "3_EstatePopularityHanten.sql"),
 	}
 
+	{
+		var estates []Estate
+		query := `SELECT * FROM estate`
+		err = db.Select(&estates, query)
+		if err != nil {
+			return c.NoContent(http.StatusInternalServerError)
+		}
+		for _, estate := range estates {
+			point := fmt.Sprintf("'POINT(%f %f)'", estate.Latitude, estate.Longitude)
+			_, err := db.Exec("update estate set latlon=?", point)
+			if err != nil {
+				return c.NoContent(http.StatusInternalServerError)
+			}
+		}
+	}
+
 	for _, p := range paths {
 		sqlFile, _ := filepath.Abs(p)
 		cmdStr := fmt.Sprintf("mysql -h %v -u %v -p%v -P %v %v < %v",
