@@ -852,6 +852,13 @@ func getLowPricedEstate(c echo.Context) error {
 	return c.JSON(http.StatusOK, EstateListResponse{Estates: estates})
 }
 
+func min(a, b int64) int64 {
+	if a < b {
+		return a
+	}
+	return b
+}
+
 func searchRecommendedEstateWithChair(c echo.Context) error {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -875,8 +882,33 @@ func searchRecommendedEstateWithChair(c echo.Context) error {
 	w := chair.Width
 	h := chair.Height
 	d := chair.Depth
-	query = `SELECT * FROM estate WHERE (door_width >= ? AND door_height >= ?) OR (door_width >= ? AND door_height >= ?) OR (door_width >= ? AND door_height >= ?) OR (door_width >= ? AND door_height >= ?) OR (door_width >= ? AND door_height >= ?) OR (door_width >= ? AND door_height >= ?) ORDER BY popularity DESC, id ASC LIMIT ?`
-	err = db.Select(&estates, query, w, h, w, d, h, w, h, d, d, w, d, h, Limit)
+	query = `(SELECT * FROM estate WHERE door_width >= ? AND door_height >= ?) UNION (SELECT * FROM estate WHERE door_width >= ? AND door_height >= ?) ORDER BY popularity DESC, id ASC LIMIT ?`
+	// err = db.Select(&estates, query,
+	// 	w, min(h, d),
+	// 	h, min(w, d),
+	// 	d, min(w, h),
+	// 	Limit)
+	var w1, h1, w2, h2 int64
+	if min(h, d) == min(w, d) {
+		w1 = min(w, h)
+		h1 = min(h, d)
+		w2 = d
+		h2 = min(w, h)
+	} else if min(w, d) == min(w, h) {
+		w1 = w
+		h1 = min(h, d)
+		w2 = min(h, d)
+		h2 = min(w, h)
+	} else { //if min(h, d) == min(w, h)
+		w1 = h
+		h1 = min(w, d)
+		w2 = min(w, d)
+		h2 = min(w, h)
+	}
+	err = db.Select(&estates, query,
+		w1, h1,
+		w2, h2,
+		Limit)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return c.JSON(http.StatusOK, EstateListResponse{[]Estate{}})
