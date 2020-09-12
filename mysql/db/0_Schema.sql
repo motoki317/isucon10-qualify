@@ -38,4 +38,6 @@ CREATE TABLE isuumo.chair
 );
 
 ALTER TABLE isuumo.chair ADD INDEX price(price);
+ALTER TABLE isuumo.chair ADD INDEX popularity(popularity);
 ALTER TABLE isuumo.estate ADD INDEX rent(rent);
+ALTER TABLE isuumo.estate ADD INDEX popularity(popularity);
