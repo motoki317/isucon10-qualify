@@ -328,6 +328,7 @@ func initialize(c echo.Context) error {
 	var err error
 	db, err = mySQLConnectionData.ConnectDB()
 	if err != nil {
+		c.Logger().Errorf("Initialize script error : %v", err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
 	db.SetMaxOpenConns(10)
@@ -351,6 +352,7 @@ func initialize(c echo.Context) error {
 			point := fmt.Sprintf("'POINT(%f %f)'", estate.Latitude, estate.Longitude)
 			_, err := db.Exec("update estate set latlon=?", point)
 			if err != nil {
+				c.Logger().Errorf("Initialize script error : %v", err)
 				return c.NoContent(http.StatusInternalServerError)
 			}
 		}
