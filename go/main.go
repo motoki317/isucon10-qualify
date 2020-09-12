@@ -1001,6 +1001,7 @@ func searchEstateNazotte(c echo.Context) error {
 		pts = append(pts, s2.PointFromLatLng(s2.LatLngFromDegrees(c.Latitude, c.Longitude)))
 	}
 	loop := s2.LoopFromPoints(pts)
+	poly := s2.PolygonFromOrientedLoops([]*s2.Loop{loop})
 
 	for _, estate := range estatesInBoundingBox {
 		estate.Popularity = -estate.Popularity
@@ -1022,7 +1023,10 @@ func searchEstateNazotte(c echo.Context) error {
 		// }
 
 		point := s2.PointFromLatLng(s2.LatLngFromDegrees(estate.Latitude, estate.Longitude))
-		if !loop.ContainsPoint(point) {
+		// if !loop.ContainsPoint(point) {
+		// 	continue
+		// }
+		if !poly.ContainsPoint(point) {
 			continue
 		}
 		estatesInPolygon = append(estatesInPolygon, estate)
