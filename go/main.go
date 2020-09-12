@@ -267,6 +267,25 @@ func main() {
 	// Middleware
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
+	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			//bot
+			userAgent := c.Request().Header.Get("User-Agent")
+
+			if userAgent == "" {
+				return next(c)
+			}
+			userAgentByte := []byte(userAgent)
+
+			for _, reg := range botRegexps {
+				if reg.Match(userAgentByte) {
+					return c.NoContent(http.StatusServiceUnavailable)
+				}
+			}
+
+			return next(c)
+		}
+	})
 
 	// Initialize
 	e.POST("/initialize", initialize)
