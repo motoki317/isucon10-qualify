@@ -341,22 +341,22 @@ func initialize(c echo.Context) error {
 		filepath.Join(sqlDir, "3_EstatePopularityHanten.sql"),
 	}
 
-	{
-		var estates []Estate
-		query := `SELECT ` + estateFrom + ` FROM estate`
-		err = db.Select(&estates, query)
-		if err != nil {
-			return c.NoContent(http.StatusInternalServerError)
-		}
-		for _, estate := range estates {
-			point := fmt.Sprintf("'POINT(%f %f)'", estate.Latitude, estate.Longitude)
-			_, err := db.Exec("update estate set latlon=ST_GeomFromText(" + point + ")")
-			if err != nil {
-				c.Logger().Errorf("Initialize script error : %v", err)
-				return c.NoContent(http.StatusInternalServerError)
-			}
-		}
-	}
+	// {
+	// 	var estates []Estate
+	// 	query := `SELECT ` + estateFrom + ` FROM estate`
+	// 	err = db.Select(&estates, query)
+	// 	if err != nil {
+	// 		return c.NoContent(http.StatusInternalServerError)
+	// 	}
+	// 	for _, estate := range estates {
+	// 		point := fmt.Sprintf("'POINT(%f %f)'", estate.Latitude, estate.Longitude)
+	// 		_, err := db.Exec("update estate set latlon=ST_GeomFromText(" + point + ")")
+	// 		if err != nil {
+	// 			c.Logger().Errorf("Initialize script error : %v", err)
+	// 			return c.NoContent(http.StatusInternalServerError)
+	// 		}
+	// 	}
+	// }
 
 	for _, p := range paths {
 		sqlFile, _ := filepath.Abs(p)
