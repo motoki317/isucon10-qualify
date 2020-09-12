@@ -31,16 +31,16 @@ var mySQLConnectionData *MySQLConnectionEnv
 var chairSearchCondition ChairSearchCondition
 var estateSearchCondition EstateSearchCondition
 
-const botRegexpStr string = `/ISUCONbot(-Mobile)?/` + `|` +
-	`/ISUCONbot-Image\//` + `|` +
-	`/Mediapartners-ISUCON/` + `|` +
-	`/ISUCONCoffee/` + `|` +
-	`/ISUCONFeedSeeker(Beta)?/` + `|` +
-	`/crawler \(https:\/\/isucon\.invalid\/(support\/faq\/|help\/jp\/)/` + `|` +
-	`/isubot/` + `|` +
-	`/Isupider/` + `|` +
-	`/Isupider(-image)?\+/` + `|` +
-	`/(bot|crawler|spider)(?:[-_ .\/;@()]|$)/i`
+const botRegexpStr string = `(ISUCONbot(-Mobile)?)` + `|` +
+	`(ISUCONbot-Image\/)` + `|` +
+	`(Mediapartners-ISUCON)` + `|` +
+	`(ISUCONCoffee)` + `|` +
+	`(ISUCONFeedSeeker(Beta)?)` + `|` +
+	`(crawler \(https:\/\/isucon\.invalid\/(support\/faq\/|help\/jp\/)))` + `|` +
+	`(isubot)` + `|` +
+	`(Isupider)` + `|` +
+	`(Isupider(-image)?\+)` + `|` +
+	`((bot|crawler|spider)(?:[-_ .\/;@()]|$))`
 
 var botRegexp = regexp.MustCompile(botRegexpStr)
 
