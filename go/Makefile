@@ -11,7 +11,7 @@ NGINX_LOG=/tmp/access.log
 
 KATARIBE_CFG=/etc/kataribe.toml
 
-DB_HOST=localhost
+DB_HOST=10.163.94.103
 DB_PORT=3306
 DB_USER=isucon
 DB_PASS=isucon
