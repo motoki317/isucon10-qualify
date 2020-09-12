@@ -18,7 +18,6 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
-	"github.com/labstack/gommon/log"
 )
 
 const Limit = 20
