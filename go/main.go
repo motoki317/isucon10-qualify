@@ -754,7 +754,7 @@ func postEstate(c echo.Context) error {
 			return c.NoContent(http.StatusBadRequest)
 		}
 		point := fmt.Sprintf("'POINT(%f %f)'", latitude, longitude)
-		_, err := tx.Exec("INSERT INTO estate(id, name, description, thumbnail, address, latitude, longitude, rent, door_height, door_width, features, popularity, latlon) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)", id, name, description, thumbnail, address, latitude, longitude, rent, doorHeight, doorWidth, features, -popularity, point)
+		_, err := tx.Exec("INSERT INTO estate(id, name, description, thumbnail, address, latitude, longitude, rent, door_height, door_width, features, popularity, latlon) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,ST_GeomFromText("+point+"))", id, name, description, thumbnail, address, latitude, longitude, rent, doorHeight, doorWidth, features, -popularity)
 		if err != nil {
 			c.Logger().Errorf("failed to insert estate: %v", err)
 			return c.NoContent(http.StatusInternalServerError)
