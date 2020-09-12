@@ -87,8 +87,9 @@ type Estate struct {
 	DoorWidth   int64   `db:"door_width" json:"doorWidth"`
 	Features    string  `db:"features" json:"features"`
 	Popularity  int64   `db:"popularity" json:"-"`
-	Latlon      int64   `db:"latlon" json:"-"`
 }
+
+const estateFrom string = "id, thumbnail, name, description, latitude, longitude, address, rent, door_height, door_width, features, popularity"
 
 //EstateSearchResponse estate/searchへのレスポンスの形式
 type EstateSearchResponse struct {
@@ -341,7 +342,7 @@ func initialize(c echo.Context) error {
 
 	{
 		var estates []Estate
-		query := `SELECT * FROM estate`
+		query := `SELECT ` + estateFrom + ` FROM estate`
 		err = db.Select(&estates, query)
 		if err != nil {
 			return c.NoContent(http.StatusInternalServerError)
@@ -681,7 +682,7 @@ func getEstateDetail(c echo.Context) error {
 	}
 
 	var estate Estate
-	err = db.Get(&estate, "SELECT * FROM estate WHERE id = ?", id)
+	err = db.Get(&estate, "SELECT "+estateFrom+" FROM estate WHERE id = ?", id)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			c.Echo().Logger.Infof("getEstateDetail estate id %v not found", id)
@@ -843,7 +844,7 @@ func searchEstates(c echo.Context) error {
 		return c.NoContent(http.StatusBadRequest)
 	}
 
-	searchQuery := "SELECT * FROM estate WHERE "
+	searchQuery := "SELECT " + estateFrom + " FROM estate WHERE "
 	countQuery := "SELECT COUNT(*) FROM estate WHERE "
 	searchCondition := strings.Join(conditions, " AND ")
 	limitOffset := " ORDER BY popularity ASC, id ASC LIMIT ? OFFSET ?"
@@ -876,7 +877,7 @@ func searchEstates(c echo.Context) error {
 
 func getLowPricedEstate(c echo.Context) error {
 	estates := make([]Estate, 0, Limit)
-	query := `SELECT * FROM estate ORDER BY rent ASC, id ASC LIMIT ?`
+	query := `SELECT ` + estateFrom + ` FROM estate ORDER BY rent ASC, id ASC LIMIT ?`
 	err := db.Select(&estates, query, Limit)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -924,8 +925,8 @@ func searchRecommendedEstateWithChair(c echo.Context) error {
 	w := chair.Width
 	h := chair.Height
 	d := chair.Depth
-	//query = `(SELECT * FROM estate WHERE door_width >= ? AND door_height >= ?) UNION (SELECT * FROM estate WHERE door_width >= ? AND door_height >= ?) ORDER BY popularity ASC, id ASC LIMIT ?`
-	query = `SELECT * FROM estate WHERE (door_width >= ? AND door_height >= ?) OR (door_width >= ? AND door_height >= ?) ORDER BY popularity ASC, id ASC LIMIT ?`
+	//query = `(SELECT ` + estateFrom + ` FROM estate WHERE door_width >= ? AND door_height >= ?) UNION (SELECT ` + estateFrom + ` FROM estate WHERE door_width >= ? AND door_height >= ?) ORDER BY popularity ASC, id ASC LIMIT ?`
+	query = `SELECT ` + estateFrom + ` FROM estate WHERE (door_width >= ? AND door_height >= ?) OR (door_width >= ? AND door_height >= ?) ORDER BY popularity ASC, id ASC LIMIT ?`
 	// err = db.Select(&estates, query,
 	// 	w, min(h, d),
 	// 	h, min(w, d),
@@ -981,7 +982,7 @@ func searchEstateNazotte(c echo.Context) error {
 	b := coordinates.getBoundingBox()
 	estatesInPolygon := []Estate{}
 	//estatesInBoundingBox := []Estate{}
-	query := fmt.Sprintf(`SELECT * FROM estate WHERE latitude <= ? AND latitude >= ? AND longitude <= ? AND longitude >= ?`+
+	query := fmt.Sprintf(`SELECT `+estateFrom+` FROM estate WHERE latitude <= ? AND latitude >= ? AND longitude <= ? AND longitude >= ?`+
 		` AND ST_Contains(ST_PolygonFromText(%s), latlon)`+
 		` ORDER BY popularity ASC, id ASC LIMIT ?`, coordinates.coordinatesToText())
 	err = db.Select(&estatesInPolygon, query, b.BottomRightCorner.Latitude, b.TopLeftCorner.Latitude, b.BottomRightCorner.Longitude, b.TopLeftCorner.Longitude, NazotteLimit)
@@ -998,7 +999,7 @@ func searchEstateNazotte(c echo.Context) error {
 		// validatedEstate := Estate{}
 
 		// point := fmt.Sprintf("'POINT(%f %f)'", estate.Latitude, estate.Longitude)
-		// query := fmt.Sprintf(`SELECT * FROM estate WHERE id = ? AND ST_Contains(ST_PolygonFromText(%s), ST_GeomFromText(%s))`, coordinates.coordinatesToText(), point)
+		// query := fmt.Sprintf(`SELECT ` + estateFrom + ` FROM estate WHERE id = ? AND ST_Contains(ST_PolygonFromText(%s), ST_GeomFromText(%s))`, coordinates.coordinatesToText(), point)
 		// err = db.Get(&validatedEstate, query, estate.ID)
 		// validatedEstate.Popularity = -validatedEstate.Popularity
 		// if err != nil {
@@ -1049,7 +1050,7 @@ func postEstateRequestDocument(c echo.Context) error {
 	}
 
 	estate := Estate{}
-	query := `SELECT * FROM estate WHERE id = ?`
+	query := `SELECT ` + estateFrom + ` FROM estate WHERE id = ?`
 	err = db.Get(&estate, query, id)
 	if err != nil {
 		if err == sql.ErrNoRows {
