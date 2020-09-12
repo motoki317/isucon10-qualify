@@ -323,6 +323,13 @@ func main() {
 }
 
 func initialize(c echo.Context) error {
+	var err error
+	db, err = mySQLConnectionData.ConnectDB()
+	if err != nil {
+		return c.NoContent(http.StatusInternalServerError)
+	}
+	db.SetMaxOpenConns(10)
+
 	sqlDir := filepath.Join("..", "mysql", "db")
 	paths := []string{
 		filepath.Join(sqlDir, "0_Schema.sql"),
