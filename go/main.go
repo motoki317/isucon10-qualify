@@ -13,9 +13,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
-
-	_ "net/http/pprof"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
@@ -270,17 +267,10 @@ func init() {
 }
 
 func main() {
-	go func() {
-		log.Fatal(http.ListenAndServe(":6060", nil))
-	}()
-
 	// Echo instance
 	e := echo.New()
-	e.Debug = true
-	e.Logger.SetLevel(log.DEBUG)
 
 	// Middleware
-	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
