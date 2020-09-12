@@ -13,9 +13,9 @@ KATARIBE_CFG=/etc/kataribe.toml
 
 DB_HOST=localhost
 DB_PORT=3306
-DB_USER=root
-DB_PASS=root
-DB_NAME=isubata
+DB_USER=isucon
+DB_PASS=isucon
+DB_NAME=isuumo
 
 SLOW_LOG=/tmp/slow-query.log
 
@@ -25,7 +25,7 @@ LOGS_DIR=/etc/logs
 
 #-------------------------------------------------------------------------------
 
-PPROF=go tool pprof http://localhost:6060/debug/pprof/profile?seconds=60
+PPROF=go tool pprof
 
 KATARIBE=kataribe -f $(KATARIBE_CFG)
 
@@ -101,7 +101,7 @@ analyze: kataribe slow
 
 .PHONY: pprof
 pprof:
-	$(PPROF) -png -output pprof.png
+	$(PPROF) -png -output pprof.png http://localhost:6060/debug/pprof/profile?seconds=60
 	$(SLACKCAT) -n pprof.png pprof.png
 
 .PHONY: kataribe
@@ -110,7 +110,7 @@ kataribe:
 
 .PHONY: slow
 slow: 
-	sudo cat $(MYSQL_LOG) | pt-query-digest | $(SLACKCAT) --tee
+	sudo cat $(SLOW_LOG) | pt-query-digest | $(SLACKCAT) --tee
 
 #-------------------------------------------------------------------------------
 
@@ -164,4 +164,3 @@ install-slackcat:
 	rm -f slackcat
 	sudo chmod +x /usr/local/bin/slackcat
 	slackcat --configure
-	
