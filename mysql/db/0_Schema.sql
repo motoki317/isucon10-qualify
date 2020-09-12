@@ -36,3 +36,5 @@ CREATE TABLE isuumo.chair
     popularity  INTEGER         NOT NULL,
     stock       INTEGER         NOT NULL
 );
+
+ALTER TABLE chair ADD INDEX price(price);
