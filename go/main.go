@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	_ "net/http/pprof"
 
@@ -398,6 +399,8 @@ func initialize(c echo.Context) error {
 			return c.NoContent(http.StatusInternalServerError)
 		}
 	}
+
+	time.Sleep(2000*time.Millisecond)
 
 	return c.JSON(http.StatusOK, InitializeResponse{
 		Language: "go",
@@ -1005,6 +1008,8 @@ func searchEstateNazotte(c echo.Context) error {
 	if len(coordinates.Coordinates) == 0 {
 		return c.NoContent(http.StatusBadRequest)
 	}
+
+	//time.Sleep(1000*time.Millisecond)
 
 	b := coordinates.getBoundingBox()
 	estatesInPolygon := []Estate{}
